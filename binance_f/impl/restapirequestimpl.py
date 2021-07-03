@@ -918,8 +918,9 @@ class RestApiRequestImpl(object):
         request.json_parser = parse
         return request
 
-    def get_position_v2(self):
+    def get_position_v2(self, symbol):
         builder = UrlParamsBuilder()
+        builder.put_url("symbol", symbol)
 
         request = self.__create_request_by_get_with_signature("/fapi/v2/positionRisk", builder)
 
