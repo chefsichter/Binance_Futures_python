@@ -85,7 +85,7 @@ class WebsocketConnection:
         self.id = connection_id
 
     def set_receive_limit_ms(self, receive_limit_ms):
-        self.last_receive_time = receive_limit_ms
+        self.receive_limit_ms = receive_limit_ms
 
     def in_delay_connection(self):
         return self.delay_in_second != -1
