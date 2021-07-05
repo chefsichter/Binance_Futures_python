@@ -11,7 +11,7 @@ def watch_dog_job(*args):
         if connection.state == ConnectionState.CONNECTED:
             if watch_dog_instance.is_auto_connect:
                 ts = get_current_timestamp() - connection.last_receive_time
-                if ts > watch_dog_instance.receive_limit_ms:
+                if ts > connection.receive_limit_ms:
                     watch_dog_instance.logger.warning("[Sub][" + str(connection.id) + "] No response from server")
                     connection.re_connect_in_delay(watch_dog_instance.connection_delay_failure)
         elif connection.in_delay_connection():
