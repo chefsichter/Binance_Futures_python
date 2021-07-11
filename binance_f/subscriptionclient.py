@@ -85,6 +85,17 @@ class SubscriptionClient(object):
         """
         request = self.websocket_request_impl.subscribe_mark_price_event(symbol, callback, error_handler)
         self.__create_connection(request)
+
+    def subscribe_spot_candlestick_event(self, symbol: 'str', interval: 'CandlestickInterval', callback,
+                                    error_handler=None):
+        """
+            Stream Name: <symbol>@kline_<interval>
+        """
+        request = self.websocket_request_impl.subscribe_candlestick_event(symbol, interval, callback, error_handler)
+        futures_uri = self.uri
+        self.uri = 'wss://stream.binance.com:9443/ws'
+        self.__create_connection(request)
+        self.uri = futures_uri
     
     def subscribe_candlestick_event(self, symbol: 'str', interval: 'CandlestickInterval', callback,
                                     error_handler=None):

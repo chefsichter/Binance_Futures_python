@@ -106,6 +106,15 @@ class RequestClient(object):
         response = call_sync(self.request_impl.get_aggregate_trades_list(symbol, fromId, startTime, endTime, limit))
         self.refresh_limits(response[1])
         return response[0]
+
+    def get_spot_candlestick_data(self, symbol: 'str', interval: 'CandlestickInterval',
+                                  startTime: 'long' = None, endTime: 'long' = None, limit: 'int' = None) -> any:
+        """
+        GET /api/v3/klines
+        """
+        response = call_sync(self.request_impl.get_spot_candlestick_data(symbol, interval, startTime, endTime, limit))
+        self.refresh_limits(response[1])
+        return response[0]
               
     def get_candlestick_data(self, symbol: 'str', interval: 'CandlestickInterval', 
                             startTime: 'long' = None, endTime: 'long' = None, limit: 'int' = None) -> any:
