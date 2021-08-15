@@ -8,5 +8,5 @@ class RestApiRequest(object):
         self.post_body = ""
         self.header = dict()
         self.json_parser = None
-        self.header.update({"client_SDK_Version": "binance_dutures-1.0.1-py3.7"})
+        self.header.update({"client_SDK_Version": "binance_dfutures-1.0.1-py3.7"})
 

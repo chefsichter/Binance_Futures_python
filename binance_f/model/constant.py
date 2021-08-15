@@ -108,3 +108,10 @@ class UpdateTime:
     FAST = "@100ms"
     REALTIME = "@0ms"
     INVALID = ""
+
+class ContractType:
+    PERPETUAL = "perpetual"
+    CURRENT_MONTH = "current_month"
+    NEXT_MONTH = "next_month"
+
+

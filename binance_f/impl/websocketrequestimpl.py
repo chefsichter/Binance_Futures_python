@@ -9,6 +9,7 @@ from binance_f.model import *
 from binance_f.base.printobject import *
 
 
+
 class WebsocketRequestImpl(object):
 
     def __init__(self, api_key):
@@ -53,6 +54,30 @@ class WebsocketRequestImpl(object):
         request.error_handler = error_handler
 
         return request
+
+    def subscribe_continuous_candlestick_event(self, pair, contract_type, interval, callback, error_handler=None):
+        check_should_not_none(pair, "pair")
+        check_should_not_none(contract_type, "contract_type")
+        check_should_not_none(interval, "interval")
+        check_should_not_none(callback, "callback")
+
+        def subscription_handler(connection):
+            connection.send(continuous_kline_channel(pair, contract_type, interval))
+            time.sleep(0.01)
+
+        def json_parse(json_wrapper):
+            result = ContinuousCandlestickEvent.json_parse(json_wrapper)
+            return result
+
+        request = WebsocketRequest()
+        request.subscription_handler = subscription_handler
+        request.json_parser = json_parse
+        request.update_callback = callback
+        request.error_handler = error_handler
+
+        return request
+
+
     
     def subscribe_candlestick_event(self, symbol, interval, callback, error_handler=None):
         check_should_not_none(symbol, "symbol")

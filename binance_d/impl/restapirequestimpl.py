@@ -974,3 +974,16 @@ class RestApiRequestImpl(object):
 
         request.json_parser = parse
         return request
+
+    def get_commission_rate(self, symbol):
+        builder = UrlParamsBuilder()
+        builder.put_url("symbol", symbol)
+
+        request = self.__create_request_by_get_with_signature("/dapi/v1/commissionRate", builder)
+
+        def parse(json_wrapper):
+            result = CommissionRate.json_parse(json_wrapper)
+            return result
+
+        request.json_parser = parse
+        return request

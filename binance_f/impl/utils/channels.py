@@ -19,6 +19,14 @@ def mark_price_channel(symbol):
     channel["method"] = "SUBSCRIBE"
     return json.dumps(channel)
 
+def continuous_kline_channel(pair, contract_type, interval):
+    channel = dict()
+    channel["params"] = list()
+    channel["params"].append(pair + '_' + contract_type + "@continuousKline_" + interval)
+    channel["id"] = get_current_timestamp()
+    channel["method"] = "SUBSCRIBE"
+    return json.dumps(channel)
+
 def kline_channel(symbol, interval):
     channel = dict()
     channel["params"] = list()

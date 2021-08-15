@@ -85,6 +85,20 @@ class SubscriptionClient(object):
         """
         request = self.websocket_request_impl.subscribe_mark_price_event(symbol, callback, error_handler)
         self.__create_connection(request)
+
+    def subscribe_continuous_candlestick_event(self, pair: 'str', contract_type: 'ContractType', interval: 'CandlestickInterval',
+                                               callback,
+                                               error_handler=None):
+        """
+        Continuous Kline/Candlestick Streams
+
+        The continuous Kline/Candlestick Stream push updates to the current klines/candlestick every 250 milliseconds (if existing).
+
+        Stream Name: <pair><contractType>@continuousKline_<interval>
+        """
+        request = self.websocket_request_impl.subscribe_continuous_candlestick_event(pair, contract_type, interval,
+                                                                                     callback, error_handler)
+        self.__create_connection(request)
     
     def subscribe_candlestick_event(self, symbol: 'str', interval: 'CandlestickInterval', callback,
                                     error_handler=None):
