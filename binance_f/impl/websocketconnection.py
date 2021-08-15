@@ -76,12 +76,16 @@ class WebsocketConnection:
         self.__watch_dog = watch_dog
         self.delay_in_second = -1
         self.ws = None
+        self.receive_limit_ms = self.__watch_dog.receive_limit_ms
         self.last_receive_time = 0
         self.logger = logging.getLogger("binance-futures")
         self.state = ConnectionState.IDLE
         global connection_id
         connection_id += 1
         self.id = connection_id
+
+    def set_receive_limit_ms(self, receive_limit_ms):
+        self.receive_limit_ms = receive_limit_ms
 
     def in_delay_connection(self):
         return self.delay_in_second != -1
