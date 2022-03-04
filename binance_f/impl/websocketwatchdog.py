@@ -28,14 +28,16 @@ class WebSocketWatchDog(threading.Thread):
     mutex = threading.Lock()
     connection_list = list()
 
-    def __init__(self, is_auto_connect=True, receive_limit_ms=60000, connection_delay_failure=15):
+    def __init__(self, is_auto_connect=True, receive_limit_ms=60000,
+                 connection_delay_failure=15, check_conn_freq=5):
+        # check_conn_freq: check all connections every 5 seconds, through watchdog
         threading.Thread.__init__(self)
         self.is_auto_connect = is_auto_connect
         self.receive_limit_ms = receive_limit_ms
         self.connection_delay_failure = connection_delay_failure
         self.logger = logging.getLogger("binance-client")
         self.scheduler = BlockingScheduler()
-        self.scheduler.add_job(watch_dog_job, "interval", max_instances=10, seconds=1, args=[self])
+        self.scheduler.add_job(watch_dog_job, "interval", max_instances=10, seconds=check_conn_freq, args=[self])
         self.start()
 
     def run(self):
