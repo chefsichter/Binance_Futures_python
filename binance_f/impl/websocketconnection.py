@@ -119,7 +119,10 @@ class WebsocketConnection:
         self.ws.close()
         del websocket_connection_handler[self.ws]
         self.__watch_dog.on_connection_closed(self)
-        self.logger.error("[Sub][" + str(self.id) + "] Closing normally")
+        self.logger.info("[Sub][" + str(self.id) + "] Closing normally")
+
+    def on_close(self):
+        self.logger.info("[Sub][" + str(self.id) + "] Received on_close from server")
 
     def on_open(self, ws):
         self.logger.info("[Sub][" + str(self.id) + "] Connected to server")
