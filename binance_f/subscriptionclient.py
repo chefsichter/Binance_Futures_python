@@ -44,6 +44,7 @@ class SubscriptionClient(object):
         is_auto_connect = True
         receive_limit_ms = 60000
         connection_delay_failure = 15
+        check_conn_freq = 5
         if "uri" in kwargs:
             self.uri = kwargs["uri"]
         if "is_auto_connect" in kwargs:
@@ -52,7 +53,12 @@ class SubscriptionClient(object):
             receive_limit_ms = kwargs["receive_limit_ms"]
         if "connection_delay_failure" in kwargs:
             connection_delay_failure = kwargs["connection_delay_failure"]
-        self.__watch_dog = WebSocketWatchDog(is_auto_connect, receive_limit_ms, connection_delay_failure)
+        if "connection_delay_failure" in kwargs:
+            check_conn_freq = kwargs["check_conn_freq"]
+        self.__watch_dog = WebSocketWatchDog(is_auto_connect=is_auto_connect,
+                                             receive_limit_ms=receive_limit_ms,
+                                             connection_delay_failure=connection_delay_failure,
+                                             check_conn_freq=check_conn_freq)
 
     def __create_connection(self, request):
         connection = WebsocketConnection(self.__api_key, self.__secret_key, self.uri, self.__watch_dog, request)
