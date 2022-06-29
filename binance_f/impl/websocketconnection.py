@@ -29,7 +29,7 @@ def on_error(ws, error):
     websocket_connection.on_failure(error)
 
 
-def on_close(ws):
+def on_close(ws, *args):
     websocket_connection = websocket_connection_handler[ws]
     websocket_connection.on_close()
 
