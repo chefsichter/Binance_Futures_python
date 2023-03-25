@@ -20,7 +20,7 @@ print("Result: ", result)
 # result = request_client.close_user_data_stream()
 # print("Result: ", result)
 
-logger = logging.getLogger("binance-client")
+logger = logging.getLogger("binance-futures")
 logger.setLevel(level=logging.INFO)
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))

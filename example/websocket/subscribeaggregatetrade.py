@@ -6,7 +6,7 @@ from binance_f.exception.binanceapiexception import BinanceApiException
 
 from binance_f.base.printobject import *
 
-logger = logging.getLogger("binance-client")
+logger = logging.getLogger("binance-futures")
 logger.setLevel(level=logging.INFO)
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))

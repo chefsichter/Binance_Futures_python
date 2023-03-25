@@ -12,10 +12,10 @@ def watch_dog_job(*args):
             if watch_dog_instance.is_auto_connect:
                 ts = get_current_timestamp() - connection.last_receive_time
                 if ts > connection.receive_limit_ms:
-                    watch_dog_instance.logger.warning("[Sub][" + str(connection.id) + "] No response from server")
+                    watch_dog_instance.logger.warning(connection.name() + "No response from server")
                     connection.re_connect_in_delay(watch_dog_instance.connection_delay_failure)
         elif connection.in_delay_connection():
-            watch_dog_instance.logger.warning("[Sub] call re_connect")
+            watch_dog_instance.logger.warning(connection.name() + "call re_connect")
             connection.re_connect()
             pass
         elif connection.state == ConnectionState.CLOSED_ON_ERROR:
@@ -35,7 +35,7 @@ class WebSocketWatchDog(threading.Thread):
         self.is_auto_connect = is_auto_connect
         self.receive_limit_ms = receive_limit_ms
         self.connection_delay_failure = connection_delay_failure
-        self.logger = logging.getLogger("binance-client")
+        self.logger = logging.getLogger("binance-futures")
         self.scheduler = BlockingScheduler()
         self.scheduler.add_job(watch_dog_job, "interval", max_instances=10, seconds=check_conn_freq, args=[self])
         self.start()

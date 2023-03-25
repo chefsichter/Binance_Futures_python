@@ -7,3 +7,4 @@ class WebsocketRequest(object):
         self.error_handler = None
         self.json_parser = None
         self.update_callback = None
+        self.channel = {"params": "params is not set, change it in websocketrequestimpl.py"}

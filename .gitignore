@@ -16,3 +16,5 @@ binance_futures.egg-info/*
 # Python venv
 .venv
 .binance_futures
+/access.toml
+/tests/test_client.py

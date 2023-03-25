@@ -9,51 +9,50 @@ from binance_f.model import *
 from binance_f.base.printobject import *
 
 
-
 class WebsocketRequestImpl(object):
 
     def __init__(self, api_key):
         self.__api_key = api_key
 
+    @staticmethod
+    def create_request_object(channel,
+                              event_object,
+                              callback,
+                              error_handler,
+                              parser=None):
+        request = WebsocketRequest()
+        request.channel = channel
+
+        def subscription_handler(connection):
+            connection.send(json.dumps(channel))
+            time.sleep(0.01)
+
+        request.subscription_handler = subscription_handler
+
+        def json_parse(json_wrapper):
+            result = event_object.json_parse(json_wrapper)
+            return result
+
+        if parser:
+            request.json_parser = parser
+        else:
+            request.json_parser = json_parse
+
+        request.update_callback = callback
+        request.error_handler = error_handler
+        return request
+
     def subscribe_aggregate_trade_event(self, symbol, callback, error_handler=None):
         check_should_not_none(symbol, "symbol")
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(aggregate_trade_channel(symbol))
-            time.sleep(0.01)
-
-        def json_parse(json_wrapper):
-            result = AggregateTradeEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
+        return self.create_request_object(aggregate_trade_channel(symbol), AggregateTradeEvent, callback, error_handler)
 
     def subscribe_mark_price_event(self, symbol, callback, error_handler=None):
         check_should_not_none(symbol, "symbol")
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(mark_price_channel(symbol))
-            time.sleep(0.01)
-
-        def json_parse(json_wrapper):
-            result = MarkPriceEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
+        return self.create_request_object(mark_price_channel(symbol), MarkPriceEvent, callback, error_handler)
 
     def subscribe_continuous_candlestick_event(self, pair, contract_type, interval, callback, error_handler=None):
         check_should_not_none(pair, "pair")
@@ -61,71 +60,25 @@ class WebsocketRequestImpl(object):
         check_should_not_none(interval, "interval")
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(continuous_kline_channel(pair, contract_type, interval))
-            time.sleep(0.01)
+        return self.create_request_object(continuous_kline_channel(pair, contract_type, interval),
+                                          ContinuousCandlestickEvent, callback, error_handler)
 
-        def json_parse(json_wrapper):
-            result = ContinuousCandlestickEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
-
-
-    
     def subscribe_candlestick_event(self, symbol, interval, callback, error_handler=None):
         check_should_not_none(symbol, "symbol")
         check_should_not_none(interval, "interval")
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(kline_channel(symbol, interval))
-            time.sleep(0.01)
+        return self.create_request_object(kline_channel(symbol, interval), CandlestickEvent, callback, error_handler)
 
-        def json_parse(json_wrapper):
-            result = CandlestickEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
-    
     def subscribe_symbol_miniticker_event(self, symbol, callback, error_handler=None):
         check_should_not_none(symbol, "symbol")
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(symbol_miniticker_channel(symbol))
-            time.sleep(0.01)
-
-        def json_parse(json_wrapper):
-            result = SymbolMiniTickerEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
+        return self.create_request_object(symbol_miniticker_channel(symbol), SymbolMiniTickerEvent,
+                                          callback, error_handler)
 
     def subscribe_all_miniticker_event(self, callback, error_handler=None):
         check_should_not_none(callback, "callback")
-
-        def subscription_handler(connection):
-            connection.send(all_miniticker_channel())
-            time.sleep(0.01)
 
         def json_parse(json_wrapper):
             result = list()
@@ -135,40 +88,17 @@ class WebsocketRequestImpl(object):
             result.append(element)
             return result
 
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
+        return self.create_request_object(all_miniticker_channel(), SymbolMiniTickerEvent, callback,
+                                          error_handler, parser=json_parse)
 
     def subscribe_symbol_ticker_event(self, symbol, callback, error_handler=None):
         check_should_not_none(symbol, "symbol")
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(symbol_ticker_channel(symbol))
-            time.sleep(0.01)
+        return self.create_request_object(symbol_ticker_channel(symbol), SymbolTickerEvent, callback, error_handler)
 
-        def json_parse(json_wrapper):
-            result = SymbolTickerEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
-    
     def subscribe_all_ticker_event(self, callback, error_handler=None):
         check_should_not_none(callback, "callback")
-
-        def subscription_handler(connection):
-            connection.send(all_ticker_channel())
-            time.sleep(0.01)
 
         def json_parse(json_wrapper):
             result = list()
@@ -178,168 +108,67 @@ class WebsocketRequestImpl(object):
             result.append(ticker_event_obj)
             return result
 
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
+        return self.create_request_object(all_ticker_channel(), SymbolTickerEvent, callback,
+                                          error_handler, parser=json_parse)
 
     def subscribe_symbol_bookticker_event(self, symbol, callback, error_handler=None):
         check_should_not_none(symbol, "symbol")
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(symbol_bookticker_channel(symbol))
-            time.sleep(0.01)
-
-        def json_parse(json_wrapper):
-            result = SymbolBookTickerEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
+        return self.create_request_object(symbol_bookticker_channel(symbol), SymbolBookTickerEvent, callback, error_handler)
 
     def subscribe_all_bookticker_event(self, callback, error_handler=None):
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(all_bookticker_channel())
-            time.sleep(0.01)
+        return self.create_request_object(all_bookticker_channel(), SymbolBookTickerEvent, callback, error_handler)
 
-        def json_parse(json_wrapper):
-            result = SymbolBookTickerEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
-    
     def subscribe_symbol_liquidation_event(self, symbol, callback, error_handler=None):
         check_should_not_none(symbol, "symbol")
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(symbol_liquidation_channel(symbol))
-            time.sleep(0.01)
+        return self.create_request_object(symbol_liquidation_channel(symbol), LiquidationOrderEvent,
+                                          callback, error_handler)
 
-        def json_parse(json_wrapper):
-            result = LiquidationOrderEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
-    
     def subscribe_all_liquidation_event(self, callback, error_handler=None):
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(all_liquidation_channel())
-            time.sleep(0.01)
-
-        def json_parse(json_wrapper):
-            result = LiquidationOrderEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
+        return self.create_request_object(all_liquidation_channel(), LiquidationOrderEvent, callback, error_handler)
 
     def subscribe_book_depth_event(self, symbol, limit, update_time, callback, error_handler=None):
         check_should_not_none(symbol, "symbol")
         check_should_not_none(limit, "limit")
         check_should_not_none(callback, "callback")
-        #print(update_time)
-        def subscription_handler(connection):
-            connection.send(book_depth_channel(symbol, limit, update_time))
-            time.sleep(0.01)
 
-        def json_parse(json_wrapper):
-            result = OrderBookEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
+        return self.create_request_object(book_depth_channel(symbol, limit, update_time), OrderBookEvent,
+                                          callback, error_handler)
 
     def subscribe_diff_depth_event(self, symbol, update_time, callback, error_handler=None):
         check_should_not_none(symbol, "symbol")
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(diff_depth_channel(symbol, update_time))
-            time.sleep(0.01)
+        return self.create_request_object(diff_depth_channel(symbol, update_time), DiffDepthEvent,
+                                          callback, error_handler)
 
-        def json_parse(json_wrapper):
-            result = DiffDepthEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
-
-  
     def subscribe_user_data_event(self, listenKey, callback, error_handler=None):
         check_should_not_none(listenKey, "listenKey")
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(user_data_channel(listenKey))
-            time.sleep(0.01)
-
         def json_parse(json_wrapper):
             print("event type: ", json_wrapper.get_string("e"))
             print(json_wrapper)
-            if(json_wrapper.get_string("e") == "ACCOUNT_UPDATE"):
+            if json_wrapper.get_string("e") == "ACCOUNT_UPDATE":
                 result = AccountUpdate.json_parse(json_wrapper)
-            elif(json_wrapper.get_string("e") == "ORDER_TRADE_UPDATE"):
+            elif json_wrapper.get_string("e") == "ORDER_TRADE_UPDATE":
                 result = OrderUpdate.json_parse(json_wrapper)
-            elif(json_wrapper.get_string("e") == "listenKeyExpired"):
+            elif json_wrapper.get_string("e") == "listenKeyExpired":
                 result = ListenKeyExpired.json_parse(json_wrapper)
             return result
 
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
+        return self.create_request_object(user_data_channel(listenKey), object, callback,
+                                          error_handler, parser=json_parse)
 
-        return request
-           
- 
     def subscribe_all_mark_price_event(self, callback, error_handler=None):
         check_should_not_none(callback, "callback")
-
-        def subscription_handler(connection):
-            connection.send(all_mark_price_channel())
-            time.sleep(0.01)
 
         def json_parse(json_wrapper):
             result = list()
@@ -349,72 +178,25 @@ class WebsocketRequestImpl(object):
             result.append(element)
             return result
 
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
-
+        return self.create_request_object(all_mark_price_channel(), object, callback,
+                                          error_handler, parser=json_parse)
 
     def subscribe_blvt_info_event(self, symbol, callback, error_handler=None):
         check_should_not_none(symbol, "symbol")
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(blvt_info_channel(symbol))
-            time.sleep(0.01)
-
-        def json_parse(json_wrapper):
-            result = BLVTInfoEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
+        return self.create_request_object(blvt_info_channel(symbol), BLVTInfoEvent, callback, error_handler)
 
     def subscribe_blvt_nav_candlestick_event(self, symbol, interval, callback, error_handler=None):
         check_should_not_none(symbol, "symbol")
         check_should_not_none(interval, "interval")
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(blvt_nav_kline_channel(symbol, interval))
-            time.sleep(0.01)
-
-        def json_parse(json_wrapper):
-            result = BLVTNAVCandlestickEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
+        return self.create_request_object(blvt_nav_kline_channel(symbol, interval), BLVTNAVCandlestickEvent,
+                                          callback, error_handler)
 
     def subscribe_composite_index_event(self, symbol, callback, error_handler=None):
         check_should_not_none(symbol, "symbol")
         check_should_not_none(callback, "callback")
 
-        def subscription_handler(connection):
-            connection.send(composite_index_channel(symbol))
-            time.sleep(0.01)
-
-        def json_parse(json_wrapper):
-            result = CompositeIndexEvent.json_parse(json_wrapper)
-            return result
-
-        request = WebsocketRequest()
-        request.subscription_handler = subscription_handler
-        request.json_parser = json_parse
-        request.update_callback = callback
-        request.error_handler = error_handler
-
-        return request
+        return self.create_request_object(composite_index_channel(symbol), CompositeIndexEvent, callback, error_handler)

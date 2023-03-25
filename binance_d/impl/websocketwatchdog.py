@@ -33,7 +33,7 @@ class WebSocketWatchDog(threading.Thread):
         self.is_auto_connect = is_auto_connect
         self.receive_limit_ms = receive_limit_ms
         self.connection_delay_failure = connection_delay_failure
-        self.logger = logging.getLogger("binance-client")
+        self.logger = logging.getLogger("binance-futures")
         self.scheduler = BlockingScheduler()
         self.scheduler.add_job(watch_dog_job, "interval", max_instances=10, seconds=1, args=[self])
         self.start()
