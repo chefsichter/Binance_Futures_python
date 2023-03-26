@@ -12,16 +12,13 @@ def watch_dog_job(*args):
             if watch_dog_instance.is_auto_connect:
                 ts = get_current_timestamp() - connection.last_receive_time
                 if ts > connection.receive_limit_ms:
-                    watch_dog_instance.logger.warning(connection.name() + "No response from server")
-                    connection.re_connect_in_delay(watch_dog_instance.connection_delay_failure)
-        elif connection.in_delay_connection():
-            watch_dog_instance.logger.warning(connection.name() + "call re_connect")
-            connection.re_connect()
-            pass
+                    watch_dog_instance.logger.warning(connection.name + "No response from server")
+                    connection.set_to_reconnect_in_delay(watch_dog_instance.connection_delay_failure)
+        elif connection.is_in_delay():
+            connection.re_connect_in_delay()
         elif connection.state == ConnectionState.CLOSED_ON_ERROR:
             if watch_dog_instance.is_auto_connect:
-                connection.re_connect_in_delay(watch_dog_instance.connection_delay_failure)
-                pass
+                connection.set_to_reconnect_in_delay(watch_dog_instance.connection_delay_failure)
 
 
 class WebSocketWatchDog(threading.Thread):
