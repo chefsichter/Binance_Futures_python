@@ -1,5 +1,7 @@
 import threading
 import logging
+
+from apscheduler.events import EVENT_JOB_MISSED, EVENT_JOB_ERROR
 from apscheduler.schedulers.blocking import BlockingScheduler
 from binance_f.impl.websocketconnection import ConnectionState
 from binance_f.impl.utils.timeservice import get_current_timestamp
@@ -35,7 +37,15 @@ class WebSocketWatchDog(threading.Thread):
         self.logger = logging.getLogger("binance-futures")
         self.scheduler = BlockingScheduler()
         self.scheduler.add_job(watch_dog_job, "interval", max_instances=10, seconds=check_conn_freq, args=[self])
+        self.scheduler.add_listener(self.job_listener, EVENT_JOB_ERROR | EVENT_JOB_MISSED)
         self.start()
+
+    def job_listener(self, event):
+        job_str = f"{event.job_id[:10]}..."
+        if event.code == EVENT_JOB_ERROR:
+            self.logger.error(f'A job ({job_str}) crashed: ' + "\n" + event.traceback + str(event.exception) + "\n")
+        elif event.code == EVENT_JOB_MISSED:
+            self.logger.error(f'A job ({job_str}) was missed.')
 
     def run(self):
         self.scheduler.start()
