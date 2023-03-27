@@ -3,6 +3,7 @@ import websocket
 import ssl
 import logging
 
+from binance_f.impl.time_out_lock import TimeoutLock
 from binance_f.impl.utils.timeservice import get_current_timestamp
 from binance_f.exception.binanceapiexception import BinanceApiException
 from binance_f.impl.utils import *
@@ -51,7 +52,6 @@ def websocket_func(*args):
     global websocket_connection_handler
     websocket_connection_handler[connection_instance.ws] = connection_instance
     connection_instance.logger.info(connection_instance.name + "Connecting...")
-    connection_instance.delay_in_second = -1
     connection_instance.ws.on_open = on_open
     connection_instance.ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
     connection_instance.logger.info(connection_instance.name + "ws.run_forever loop down")
@@ -77,6 +77,7 @@ class WebsocketConnection:
         global connection_id
         connection_id += 1
         self.id = connection_id
+        self.lock = TimeoutLock(self.logger, "WebsocketConnection")
         self.name = self.get_name()
 
     def get_name(self):
@@ -93,26 +94,30 @@ class WebsocketConnection:
         self.receive_limit_ms = receive_limit_ms
 
     def is_in_delay(self):
-        return self.delay_in_second != -1
+        with self.lock.cm_acquire():
+            return self.delay_in_second != -1
 
     def set_to_reconnect_in_delay(self, delay_in_second):
-        if self.ws is not None:
-            self.ws.close()
-            self.ws = None
-        self.delay_in_second = delay_in_second
-        self.logger.warning(self.name + "Reconnecting after " + str(self.delay_in_second) + " seconds later")
+        with self.lock.cm_acquire():
+            if self.ws is not None:
+                self.ws.close()
+                self.ws = None
+            self.delay_in_second = delay_in_second
+            self.logger.warning(self.name + "Reconnecting after " + str(self.delay_in_second) + " seconds later")
 
     def re_connect_in_delay(self):
-        if self.delay_in_second != 0:
-            self.delay_in_second -= 1
-            self.logger.warning(self.name + "In delay connection: " + str(self.delay_in_second))
-        else:
-            self.connect()
+        with self.lock.cm_acquire():
+            if self.delay_in_second != 0:
+                self.delay_in_second -= 1
+                self.logger.warning(self.name + "In delay connection: " + str(self.delay_in_second))
+            else:
+                self.connect()
 
     def connect(self):
         if self.state == ConnectionState.CONNECTED:
             self.logger.info(self.name + "Already connected")
         else:
+            self.delay_in_second = -1
             self.__thread = threading.Thread(target=websocket_func, args=[self])
             self.__thread.start()
 
@@ -120,23 +125,25 @@ class WebsocketConnection:
         self.ws.send(data)
 
     def close(self):
-        self.logger.info(self.name + "Closing normally")
-        self.ws.close()
-        del websocket_connection_handler[self.ws]
-        self.__watch_dog.on_connection_closed(self)
+        with self.lock.cm_acquire():
+            self.logger.info(self.name + "Closing normally")
+            self.ws.close()
+            del websocket_connection_handler[self.ws]
+            self.__watch_dog.on_connection_closed(self)
 
     def on_close(self):
         self.logger.info(self.name + "on_close: Received on_close from server")
 
     def on_open(self, ws):
-        self.logger.info(self.name + "on_open: Connected to server")
-        self.ws = ws
-        self.last_receive_time = get_current_timestamp()
-        self.state = ConnectionState.CONNECTED
-        self.__watch_dog.on_connection_created(self)
-        if self.request.subscription_handler is not None:
-            self.request.subscription_handler(self)
-        return
+        with self.lock.cm_acquire():
+            self.logger.info(self.name + "on_open: Connected to server")
+            self.ws = ws
+            self.last_receive_time = get_current_timestamp()
+            self.state = ConnectionState.CONNECTED
+            self.__watch_dog.on_connection_created(self)
+            if self.request.subscription_handler is not None:
+                self.request.subscription_handler(self)
+            return
 
     def error_msg(self, error_message):
         error_message = self.name + str(error_message)
@@ -146,11 +153,12 @@ class WebsocketConnection:
         self.logger.error(error_message)
 
     def on_error(self, error):
-        self.error_msg("on_error: " + str(error))
-        if self.ws is not None:
-            self.logger.error(self.name + "Connection is closing due to error")
-            self.ws.close()
-            self.state = ConnectionState.CLOSED_ON_ERROR
+        with self.lock.cm_acquire():
+            self.error_msg("on_error: " + str(error))
+            if self.ws is not None:
+                self.logger.error(self.name + "Connection is closing due to error")
+                self.ws.close()
+                self.state = ConnectionState.CLOSED_ON_ERROR
 
     def on_message(self, message):
         self.last_receive_time = get_current_timestamp()
