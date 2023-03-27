@@ -36,7 +36,7 @@ class WebSocketWatchDog(threading.Thread):
         self.connection_delay_failure = connection_delay_failure
         self.logger = logging.getLogger("binance-futures")
         self.scheduler = BlockingScheduler()
-        self.scheduler.add_job(watch_dog_job, "interval", max_instances=10, seconds=check_conn_freq, args=[self])
+        self.scheduler.add_job(watch_dog_job, "interval", max_instances=1, seconds=check_conn_freq, args=[self])
         self.scheduler.add_listener(self.job_listener, EVENT_JOB_ERROR | EVENT_JOB_MISSED)
         self.start()
 
