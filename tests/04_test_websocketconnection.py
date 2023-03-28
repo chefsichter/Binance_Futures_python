@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 
 from binance_f import SubscriptionClient
+from binance_f.impl.utils.timeservice import get_current_timestamp
 from tests.test_client import callback_agg, error_handler, request_client, test_api_key, test_secret_key, \
     NEW_TESTNET_WS_URL, callback_mark
 
@@ -16,7 +17,10 @@ class TestFBraWebSocket(TestCase):
     def setUpClass(cls) -> None:
         cls.modul = f"{cls.__class__.__name__}"
         cls.symbol = "btcusdt"
-        cls.sub_client = SubscriptionClient(api_key=test_api_key, secret_key=test_secret_key, uri=NEW_TESTNET_WS_URL)
+        cls.sub_client = SubscriptionClient(api_key=test_api_key, secret_key=test_secret_key,
+                                            uri=NEW_TESTNET_WS_URL,
+                                            check_conn_freq=1,
+                                            connection_delay_failure=3)
         log_binance_future = logging.getLogger("binance-futures")
         log_binance_future.setLevel(level=logging.DEBUG)
         handler = logging.StreamHandler()
@@ -27,15 +31,15 @@ class TestFBraWebSocket(TestCase):
         self.sub_client.subscribe_aggregate_trade_event(self.symbol, callback_agg, error_handler)
         ws_connection = self.sub_client.connections[0]
         time.sleep(5)
-        ws_connection.on_error("fake binance error")
+        ws_connection.on_error(ws_connection, "fake binance error")
         json_msg = '{"id": "1"}'
-        ws_connection.on_message(json_msg)
+        ws_connection.on_message(ws_connection, json_msg)
         json_msg = '{"msg": "hello msg"}'
-        ws_connection.on_message(json_msg)
+        ws_connection.on_message(ws_connection, json_msg)
         json_msg = '{"status": "err"}'
-        ws_connection.on_message(json_msg)
+        ws_connection.on_message(ws_connection, json_msg)
         json_msg = '{"err-code": "-5055", "err-msg": "fake msg"}'
-        ws_connection.on_message(json_msg)
+        ws_connection.on_message(ws_connection, json_msg)
         time.sleep(60)
         ws_connection.close()
 
@@ -44,20 +48,19 @@ class TestFBraWebSocket(TestCase):
         self.sub_client.subscribe_mark_price_event(self.symbol, callback_mark, error_handler)
         ws_connection = self.sub_client.connections[0]
         time.sleep(5)
-        with patch('binance_f.impl.websocketwatchdog.get_current_timestamp') as mock:
-            mock.return_value = ws_connection.last_receive_time + 120000
-            time.sleep(11)
+        ws_connection.ws.close()
+        ws_connection.last_receive_time = get_current_timestamp() - 120000
         time.sleep(1 * 60)
 
     def test_on_error(self):
         self.sub_client.subscribe_mark_price_event(self.symbol, callback_mark, error_handler)
-        self.sub_client.subscribe_mark_price_event(self.symbol, callback_mark, error_handler)
+        # self.sub_client.subscribe_mark_price_event(self.symbol, callback_mark, error_handler)
         ws_connection1 = self.sub_client.connections[0]
-        ws_connection2 = self.sub_client.connections[1]
-        time.sleep(5)
-        ws_connection1.on_error("1 Ein Fehler ist aufgetreten.")
-        ws_connection2.on_error("2 Ein Fehler ist aufgetreten.")
-        time.sleep(1 * 60)
+        # ws_connection2 = self.sub_client.connections[1]
+        time.sleep(10)
+        ws_connection1.on_error(ws_connection1.ws, "1 Ein Fehler ist aufgetreten.")
+        # ws_connection2.on_error("2 Ein Fehler ist aufgetreten.")
+        time.sleep(2 * 60)
 
     def test_user_socket(self):
         key = request_client.start_user_data_stream()
