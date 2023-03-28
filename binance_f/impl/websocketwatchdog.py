@@ -44,11 +44,11 @@ class WebSocketWatchDog(threading.Thread):
     def job_listener(self, event):
         job_str = f"{event.job_id[:10]}..."
         if event.code == EVENT_JOB_ERROR:
-            self.logger.error(f'A job ({job_str}) crashed: ' + "\n" + event.traceback + str(event.exception) + "\n")
+            self.logger.error(f"A job ({job_str}) crashed: " + "\n" + event.traceback + str(event.exception) + "\n")
         elif event.code == EVENT_JOB_MISSED:
-            self.logger.error(f'A job ({job_str}) was missed.')
+            self.logger.error(f"A job ({job_str}) was missed.")
         elif event.code == EVENT_JOB_MAX_INSTANCES:
-            self.logger.error(f'A job ({job_str}) was skipped.')
+            self.logger.error(f"A job ({job_str}) was skipped.")
 
     def run(self):
         self.scheduler.start()
