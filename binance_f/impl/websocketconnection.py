@@ -51,10 +51,10 @@ def websocket_func(*args):
                                                     on_close=on_close)
     global websocket_connection_handler
     websocket_connection_handler[connection_instance.ws] = connection_instance
-    connection_instance.logger.info(connection_instance.name + "Connecting...")
+    connection_instance.logger.info(connection_instance.name + ": Connecting...")
     connection_instance.ws.on_open = on_open
     connection_instance.ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
-    connection_instance.logger.info(connection_instance.name + "ws.run_forever loop down")
+    connection_instance.logger.info(connection_instance.name + ": ws.run_forever loop down")
     if connection_instance.state == ConnectionState.CONNECTED:
         connection_instance.state = ConnectionState.IDLE
 
@@ -77,8 +77,8 @@ class WebsocketConnection:
         global connection_id
         connection_id += 1
         self.id = connection_id
-        self.lock = TimeoutLock(self.logger, "WebsocketConnection")
         self.name = self.get_name()
+        self.lock = TimeoutLock(logger=self.logger, modul=self.name, debug=True)
 
     def get_name(self):
         cut_off = 20
@@ -88,7 +88,7 @@ class WebsocketConnection:
                 params = params[:cut_off]+"..."
         except (KeyError, TypeError):
             params = "params not set"
-        return f"[Sub][{self.id}]{params}: "
+        return f"[Sub][{self.id}]{params}"
 
     def set_receive_limit_ms(self, receive_limit_ms):
         self.receive_limit_ms = receive_limit_ms
@@ -103,19 +103,19 @@ class WebsocketConnection:
                 self.ws.close()
                 self.ws = None
             self.delay_in_second = delay_in_second
-            self.logger.warning(self.name + "Reconnecting after " + str(self.delay_in_second) + " seconds later")
+            self.logger.warning(self.name + ": Reconnecting after " + str(self.delay_in_second) + " seconds later")
 
     def re_connect_in_delay(self):
         with self.lock.cm_acquire():
             if self.delay_in_second != 0:
                 self.delay_in_second -= 1
-                self.logger.warning(self.name + "In delay connection: " + str(self.delay_in_second))
+                self.logger.warning(self.name + ": In delay connection: " + str(self.delay_in_second))
             else:
                 self.connect()
 
     def connect(self):
         if self.state == ConnectionState.CONNECTED:
-            self.logger.info(self.name + "Already connected")
+            self.logger.info(self.name + ": Already connected")
         else:
             self.delay_in_second = -1
             self.__thread = threading.Thread(target=websocket_func, args=[self])
@@ -126,17 +126,17 @@ class WebsocketConnection:
 
     def close(self):
         with self.lock.cm_acquire():
-            self.logger.info(self.name + "Closing normally")
+            self.logger.info(self.name + ": Closing normally")
             self.ws.close()
             del websocket_connection_handler[self.ws]
             self.__watch_dog.on_connection_closed(self)
 
     def on_close(self):
-        self.logger.info(self.name + "on_close: Received on_close from server")
+        self.logger.info(self.name + ": on_close: Received on_close from server")
 
     def on_open(self, ws):
         with self.lock.cm_acquire():
-            self.logger.info(self.name + "on_open: Connected to server")
+            self.logger.info(self.name + ": on_open: Connected to server")
             self.ws = ws
             self.last_receive_time = get_current_timestamp()
             self.state = ConnectionState.CONNECTED
@@ -146,7 +146,7 @@ class WebsocketConnection:
             return
 
     def error_msg(self, error_message):
-        error_message = self.name + str(error_message)
+        error_message = self.name + ": " + str(error_message)
         if self.request.error_handler is not None:
             exception = BinanceApiException(BinanceApiException.SUBSCRIPTION_ERROR, error_message)
             self.request.error_handler(exception)
@@ -156,7 +156,7 @@ class WebsocketConnection:
         with self.lock.cm_acquire():
             self.error_msg("on_error: " + str(error))
             if self.ws is not None:
-                self.logger.error(self.name + "Connection is closing due to error")
+                self.logger.error(self.name + ": Connection is closing due to error")
                 self.ws.close()
                 self.state = ConnectionState.CLOSED_ON_ERROR
 
