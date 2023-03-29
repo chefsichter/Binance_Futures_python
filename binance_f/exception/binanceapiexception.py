@@ -9,6 +9,7 @@ class BinanceApiException(Exception):
     ENV_ERROR = "EnvironmentError"
     EXEC_ERROR = "ExecuteError"
 
-    def __init__(self, error_code, error_message):
+    def __init__(self, error_code, error_message, error_binance=None):
         self.error_code = error_code
         self.error_message = error_message
+        self.error_binance = error_binance

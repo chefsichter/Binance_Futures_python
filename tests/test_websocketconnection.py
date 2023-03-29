@@ -36,15 +36,41 @@ class TestFBraWebSocket(TestCase):
         self.sub_client.subscribe_aggregate_trade_event(self.symbol, callback_agg, error_handler)
         ws_connection = self.sub_client.connections[0]
         time.sleep(5)
-        ws_connection.on_error(ws_connection, "fake binance error")
-        json_msg = '{"id": "1"}'
+        # ws_connection.on_error(ws_connection, "fake binance error")
+        # status error messages
+        json_msg = '{"status":"fake status"}'
         ws_connection.on_message(ws_connection, json_msg)
+        json_msg = '{"status":"fake status", "msg":"Invalid symbol."}'
+        ws_connection.on_message(ws_connection, json_msg)
+        json_msg = '{"status":"fake status", "msg":"Invalid symbol."}'
+        ws_connection.on_message(ws_connection, json_msg)
+        json_msg = '{"status":"fake status", "msg":"Invalid symbol.", "code":-1}'
+        ws_connection.on_message(ws_connection, json_msg)
+
+        # code error messages
+        json_msg = '{"code":-1}'
+        ws_connection.on_message(ws_connection, json_msg)
+        json_msg = '{"code":-1121,"msg":"Invalid symbol."}'
+        ws_connection.on_message(ws_connection, json_msg)
+        json_msg = '{"code":-1003,"msg":"too_many_requests"}'
+        ws_connection.on_message(ws_connection, json_msg)
+
+        # result message
+        json_msg = '{"id": "-1", "result": "fake result"}'
+        ws_connection.on_message(ws_connection, json_msg)
+        json_msg = '{"result": "fake result"}'
+        ws_connection.on_message(ws_connection, json_msg)
+        json_msg = '{"id": -1}'
+        ws_connection.on_message(ws_connection, json_msg)
+
+        # payload message
+        json_msg = '{"e": -1}'
+        ws_connection.on_message(ws_connection, json_msg)
+
+        # random message
         json_msg = '{"msg": "hello msg"}'
         ws_connection.on_message(ws_connection, json_msg)
-        json_msg = '{"status": "err"}'
-        ws_connection.on_message(ws_connection, json_msg)
-        json_msg = '{"err-code": "-5055", "err-msg": "fake msg"}'
-        ws_connection.on_message(ws_connection, json_msg)
+
         time.sleep(60)
         ws_connection.close()
 
@@ -63,7 +89,8 @@ class TestFBraWebSocket(TestCase):
         ws_connection1 = self.sub_client.connections[0]
         # ws_connection2 = self.sub_client.connections[1]
         time.sleep(10)
-        ws_connection1.on_error(ws_connection1.ws, "1 Ein Fehler ist aufgetreten.")
+        ws_connection1.on_error(ws_connection1.ws, json.loads('{"code":-1, '
+                                                              '"msg":"true"}'))
         # ws_connection2.on_error("2 Ein Fehler ist aufgetreten.")
         time.sleep(2 * 60)
 

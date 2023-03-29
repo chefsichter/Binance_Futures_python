@@ -75,14 +75,16 @@ class WebsocketConnection:
         try:
             res = json_wrapper.get_int("id")
         except Exception as e:
-            self._error_msg("Failed to parse server's response: " + str(e))
+            self._error_msg(f"{SubscribeMessageType.RESPONSE.upper()}->Failed to parse server's response: " +
+                            str(e), error_binance=json_wrapper.json_object)
 
         try:
             if self.request.update_callback is not None:
                 self.request.update_callback(SubscribeMessageType.RESPONSE, res)
         except Exception as e:
-            self._error_msg("Process error: " + str(e)
-                            + " You should capture the exception in your error handler")
+            self._error_msg(f"{SubscribeMessageType.RESPONSE.upper()}->Process error: " + str(e)
+                            + " You should capture the exception in your error handler",
+                            error_binance=json_wrapper.json_object)
 
     def __on_receive_payload(self, json_wrapper):
         res = None
@@ -90,14 +92,16 @@ class WebsocketConnection:
             if self.request.json_parser is not None:
                 res = self.request.json_parser(json_wrapper)
         except Exception as e:
-            self._error_msg("Failed to parse server's response: " + str(e))
+            self._error_msg(f"{SubscribeMessageType.PAYLOAD.upper()}->Failed to parse server's response: "
+                            + str(e), error_binance=json_wrapper.json_object)
 
         try:
             if self.request.update_callback is not None:
                 self.request.update_callback(SubscribeMessageType.PAYLOAD, res)
         except Exception as e:
-            self._error_msg("Process error: " + str(e) +
-                            " You should capture the exception in your error handler")
+            self._error_msg(f"{SubscribeMessageType.PAYLOAD.upper()}->Process error: " + str(e) +
+                            " You should capture the exception in your error handler",
+                            error_binance=json_wrapper.json_object)
 
         if self.request.auto_close:
             self.close()
@@ -108,30 +112,38 @@ class WebsocketConnection:
             json_wrapper = parse_json_from_string(message)
 
             if json_wrapper.contain_key("status") and json_wrapper.get_string("status") != "ok":
-                error_code = json_wrapper.get_string_or_default("err-code", "Unknown error")
-                error_msg = json_wrapper.get_string_or_default("err-msg", "Unknown error")
-                self._error_msg(error_code + ": " + error_msg)
-            elif json_wrapper.contain_key("err-code") and json_wrapper.get_int("err-code") != 0:
-                error_code = json_wrapper.get_string_or_default("err-code", "Unknown error")
-                error_msg = json_wrapper.get_string_or_default("err-msg", "Unknown error")
-                self._error_msg(error_code + ": " + error_msg)
+                error_code = json_wrapper.get_string_or_default("code", "Unknown error")
+                error_msg = json_wrapper.get_string_or_default("msg", "Unknown error")
+                self._error_msg(error_code + ": " + error_msg, error_binance=json_wrapper.json_object)
+            elif json_wrapper.contain_key("code") and json_wrapper.get_int("code") != 0:
+                error_code = json_wrapper.get_string_or_default("code", "Unknown error")
+                error_msg = json_wrapper.get_string_or_default("msg", "Unknown error")
+                self._error_msg(error_code + ": " + error_msg, error_binance=json_wrapper.json_object)
             elif json_wrapper.contain_key("result") and json_wrapper.contain_key("id"):
                 self.logger.info(self.name + ": on_message: " + message)
                 self.__on_receive_response(json_wrapper)
             else:
                 self.__on_receive_payload(json_wrapper)
 
-    def _error_msg(self, error_message):
+    def _error_msg(self, error_message, error_binance=None):
         error_message = self.name + ": " + str(error_message)
         if self.request.error_handler is not None:
-            exception = BinanceApiException(BinanceApiException.SUBSCRIPTION_ERROR, error_message)
+            exception = BinanceApiException(BinanceApiException.SUBSCRIPTION_ERROR,
+                                            error_message,
+                                            error_binance=error_binance)
             self.request.error_handler(exception)
         self.logger.error(error_message)
+        if error_binance:
+            self.logger.warning(f"Binance: {error_binance}")
 
     def on_error(self, ws, error):
         with self.lock.cm_acquire():
             self.state = ConnectionState.CLOSED_ON_ERROR
-            self._error_msg("on_error: " + str(error))
+            try:
+                error_binance = parse_json_from_string(error).json_object
+            except json.decoder.JSONDecodeError:
+                error_binance = error
+            self._error_msg("on_error: " + str(error), error_binance=error_binance)
             if self.ws is not None:
                 self.logger.error(self.name + ": Connection is closing due to error")
                 self.ws.close()
