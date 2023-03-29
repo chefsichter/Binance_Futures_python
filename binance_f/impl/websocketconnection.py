@@ -103,7 +103,7 @@ class WebsocketConnection:
             self.close()
 
     def on_message(self, ws, message):
-        with self.lock.cm_acquire():
+        with self.lock.cm_acquire(debug=False):
             self.last_receive_time = get_current_timestamp()
             json_wrapper = parse_json_from_string(message)
 
@@ -116,6 +116,7 @@ class WebsocketConnection:
                 error_msg = json_wrapper.get_string_or_default("err-msg", "Unknown error")
                 self._error_msg(error_code + ": " + error_msg)
             elif json_wrapper.contain_key("result") and json_wrapper.contain_key("id"):
+                self.logger.info(self.name + ": on_message: " + message)
                 self.__on_receive_response(json_wrapper)
             else:
                 self.__on_receive_payload(json_wrapper)
@@ -171,8 +172,8 @@ class WebsocketConnection:
 
     def on_close(self, ws, close_status_code, close_msg):
         with self.lock.cm_acquire():
-            self.logger.info(self.name + f": on_close: Received following close_status_code: '{close_status_code}' and "
-                                         f"close_msg: '{close_msg}' from server")
+            self.logger.info(self.name + f": on_close: close_status_code: '{close_status_code}', "
+                                         f"close_msg: '{close_msg}'")
 
     def _close_websocket(self):
         if self.ws is not None:
