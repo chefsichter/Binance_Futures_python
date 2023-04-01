@@ -32,6 +32,7 @@ class WebSocketWatchDog(threading.Thread):
                  connection_delay_failure=15, check_conn_freq=5):
         # check_conn_freq: check all connections every 5 seconds, through watchdog
         threading.Thread.__init__(self)
+        self.modul = f"{self.__class__.__name__}"
         self.is_auto_connect = is_auto_connect
         self.receive_limit_ms = receive_limit_ms
         self.connection_delay_failure = connection_delay_failure
@@ -60,5 +61,8 @@ class WebSocketWatchDog(threading.Thread):
 
     def on_connection_closed(self, connection):
         self.mutex.acquire()
-        self.connection_list.remove(connection)
+        try:
+            self.connection_list.remove(connection)
+        except ValueError:
+            self.logger.warning(f"{self.modul}: A non existing connection from {self.modul} was tried to be removed.")
         self.mutex.release()

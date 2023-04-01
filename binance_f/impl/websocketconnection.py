@@ -178,7 +178,7 @@ class WebsocketConnection:
     def re_connect_in_delay(self):
         if self.delay_in_second != 0:
             self.delay_in_second -= 1
-            self.logger.warning(self.name + ": In delay connection: " + str(self.delay_in_second))
+            self.logger.info(self.name + ": In delay connection: " + str(self.delay_in_second))
         else:
             self.connect()
 
