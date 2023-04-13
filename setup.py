@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="binance-futures",
-    version="1.3.10",
+    version="1.3.11",
     packages=['binance_f', 'binance_f.impl', 'binance_f.impl.utils', 'binance_f.exception', 'binance_f.model',
               'binance_f.base', 'binance_f.constant', 'binance_d', 'binance_d.impl', 'binance_d.impl.utils',
               'binance_d.exception', 'binance_d.model', 'binance_d.base', 'binance_d.constant'],

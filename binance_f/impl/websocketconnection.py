@@ -1,5 +1,6 @@
 import threading
 import time
+import traceback
 
 import websocket
 import ssl
@@ -136,17 +137,28 @@ class WebsocketConnection:
         if error_binance:
             self.logger.warning(f"Binance: {error_binance}")
 
+    @staticmethod
+    def _create_err_string(error):
+        tb_list = traceback.format_exception(None, error, error.__traceback__)
+        tb_string = ''.join(tb_list)
+        return f"\n{tb_string}"
+
     def on_error(self, ws, error):
         with self.lock.cm_acquire():
             self.state = ConnectionState.CLOSED_ON_ERROR
             try:
                 error_binance = parse_json_from_string(error).json_object
-            except json.decoder.JSONDecodeError:
-                error_binance = error
-            self._error_msg("on_error: " + str(error), error_binance=error_binance)
-            if self.ws is not None:
-                self.logger.error(self.name + ": Connection is closing due to error")
-                self.ws.close()
+                self._error_msg("on_error: " + str(error), error_binance=error_binance)
+            except (json.decoder.JSONDecodeError, AttributeError) as new_err1:
+                try: # e.g. WebSocketConnectionClosedException
+                    err_str = self._create_err_string(error)
+                except AttributeError as new_err2:
+                    err_str = str(error)
+                self._error_msg("on_error: " + err_str)
+            finally:
+                if self.ws is not None:
+                    self.logger.error(self.name + ": Connection is closing due to error")
+                    self.ws.close()
 
     def set_to_reconnect_in_delay(self, delay_in_second):
         self._close_websocket()

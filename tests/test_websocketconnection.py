@@ -4,6 +4,7 @@ import time
 from unittest import TestCase
 from unittest.mock import patch
 
+import websocket
 
 from binance_f import SubscriptionClient
 from binance_f.impl.utils.timeservice import get_current_timestamp
@@ -85,12 +86,16 @@ class TestFBraWebSocket(TestCase):
 
     def test_on_error(self):
         self.sub_client.subscribe_mark_price_event(self.symbol, callback_mark, error_handler)
-        # self.sub_client.subscribe_mark_price_event(self.symbol, callback_mark, error_handler)
+        self.sub_client.subscribe_mark_price_event(self.symbol, callback_mark, error_handler)
         ws_connection1 = self.sub_client.connections[0]
+        ws_connection2 = self.sub_client.connections[1]
         # ws_connection2 = self.sub_client.connections[1]
         time.sleep(10)
         ws_connection1.on_error(ws_connection1.ws, json.loads('{"code":-1, '
                                                               '"msg":"true"}'))
+
+        ws_connection2.on_error(ws_connection2.ws,
+                                websocket._exceptions.WebSocketConnectionClosedException("Connection to remote host was lost"))
         # ws_connection2.on_error("2 Ein Fehler ist aufgetreten.")
         time.sleep(2 * 60)
 
