@@ -6,6 +6,8 @@ import websocket
 import ssl
 import logging
 
+from websocket import WebSocketConnectionClosedException
+
 from binance_f.impl.time_out_lock import TimeoutLock
 from binance_f.impl.utils.timeservice import get_current_timestamp
 from binance_f.exception.binanceapiexception import BinanceApiException
@@ -126,35 +128,47 @@ class WebsocketConnection:
             else:
                 self.__on_receive_payload(json_wrapper)
 
-    def _error_msg(self, error_message, error_binance=None):
+    def _error_msg(self, error_message, log_lvl=logging.ERROR, error_binance=None):
         error_message = self.name + ": " + str(error_message)
         if self.request.error_handler is not None:
             exception = BinanceApiException(BinanceApiException.SUBSCRIPTION_ERROR,
                                             error_message,
                                             error_binance=error_binance)
             self.request.error_handler(exception)
-        self.logger.error(error_message)
+        self.logger.log(log_lvl, error_message)
         if error_binance:
-            self.logger.warning(f"Binance: {error_binance}")
+            self.logger.log(log_lvl, f"Binance: {error_binance}")
 
     @staticmethod
-    def _create_err_string(error):
-        tb_list = traceback.format_exception(None, error, error.__traceback__)
-        tb_string = ''.join(tb_list)
-        return f"\n{tb_string}"
+    def _create_traceback_err_str(error):
+        try:
+            tb_list = traceback.format_exception(None, error, error.__traceback__)
+            tb_string = ''.join(tb_list)
+            err_str = f"\n{tb_string}"
+        except AttributeError as err:
+            err_str = str(error)
+        return err_str
 
     def on_error(self, ws, error):
         with self.lock.cm_acquire():
             self.state = ConnectionState.CLOSED_ON_ERROR
             try:
-                error_binance = parse_json_from_string(error).json_object
-                self._error_msg("on_error: " + str(error), error_binance=error_binance)
-            except (json.decoder.JSONDecodeError, AttributeError) as new_err1:
-                try: # e.g. WebSocketConnectionClosedException
-                    err_str = self._create_err_string(error)
-                except AttributeError as new_err2:
-                    err_str = str(error)
-                self._error_msg("on_error: " + err_str)
+                # isinstance can take tuples
+                # https://stackoverflow.com/questions/33311258/python-check-if-variable-isinstance-of-any-type-in-list
+                if isinstance(error, WebSocketConnectionClosedException):
+                    self._error_msg("on_error: " + str(error), log_lvl=logging.WARNING)
+                elif isinstance(error, Exception):
+                    err_str = self._create_traceback_err_str(error)
+                    self._error_msg("on_error: " + err_str, log_lvl=logging.ERROR)
+                elif isinstance(error, str):
+                    try:
+                        error_binance = json.loads(error)  # if the message is a string
+                        self._error_msg("on_error: " + str(error), log_lvl=logging.ERROR, error_binance=error_binance)
+                    except(json.decoder.JSONDecodeError, TypeError):
+                        self._error_msg("on_error: " + error, log_lvl=logging.ERROR)
+                else:
+                    err_str = self._create_traceback_err_str(error)
+                    self._error_msg("on_error: " + err_str, log_lvl=logging.ERROR)
             finally:
                 if self.ws is not None:
                     self.logger.error(self.name + ": Connection is closing due to error")
