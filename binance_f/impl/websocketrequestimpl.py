@@ -7,6 +7,7 @@ from binance_f.impl.utils.inputchecker import *
 from binance_f.model import *
 # For develop
 from binance_f.base.printobject import *
+from binance_f.model.tradelite import TradeLite
 
 
 class WebsocketRequestImpl(object):
@@ -160,6 +161,8 @@ class WebsocketRequestImpl(object):
                 result = AccountUpdate.json_parse(json_wrapper)
             elif json_wrapper.get_string("e") == "ORDER_TRADE_UPDATE":
                 result = OrderUpdate.json_parse(json_wrapper)
+            elif json_wrapper.get_string("e") == "TRADE_LITE":
+                result = TradeLite.json_parse(json_wrapper)
             elif json_wrapper.get_string("e") == "listenKeyExpired":
                 result = ListenKeyExpired.json_parse(json_wrapper)
             return result
